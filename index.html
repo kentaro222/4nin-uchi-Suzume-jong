@@ -2,7 +2,14 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>4人打ち すずめ雀</title>
+    
+    <!-- PWA用の設定 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3b9e2b">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    
     <!-- レトロなドットフォントを読み込み -->
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
@@ -11,8 +18,15 @@
             background-color: #3b9e2b; /* ファミコンの麻雀マット風の緑 */
             color: white; 
             margin: 0; 
-            padding: 20px; 
+            padding: 5px; 
             text-align: center; 
+            touch-action: manipulation; /* ダブルタップズーム防止 */
+            
+            /* 画面全体を縦に並べるフレックスコンテナにする */
+            display: flex;
+            flex-direction: column;
+            height: 100dvh; /* スマホのブラウザバーを除いた正確な画面高さ */
+            box-sizing: border-box;
         }
         
         /* 画面上部の情報バー */
@@ -20,37 +34,43 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            max-width: 800px;
-            margin: 0 auto 10px auto;
-            font-size: 24px;
-            border-bottom: 2px solid white;
-            padding-bottom: 10px;
+            max-width: 100%;
+            margin: 0 auto 5px auto;
+            font-size: 14px;
+            border-bottom: 1px solid white;
+            padding-bottom: 5px;
+            width: 100%;
+            flex-shrink: 0; /* 縮まないようにする */
         }
 
         #turn-indicator {
             color: #ffd700;
+            font-weight: bold;
+            font-size: 16px;
         }
 
         .dora-container {
             display: flex;
             align-items: center;
-            gap: 5px;
-            font-size: 18px;
+            gap: 2px;
         }
 
         #dora-indicator {
             transform: scale(0.8);
             transform-origin: center;
-            height: 38px; /* 縮小前の高さを確保 */
+            height: 28px;
+            margin-left: -2px;
+            margin-right: -2px;
         }
 
         /* 縦並びのレイアウト */
         #game-board { 
             display: flex; 
             flex-direction: column; 
-            gap: 15px; 
-            max-width: 800px; 
+            gap: 6px; 
+            width: 100%; 
             margin: 0 auto; 
+            flex-shrink: 0; /* 盤面は縮めない */
         }
         
         /* 各プレイヤーのエリア（横長の行） */
@@ -58,38 +78,40 @@
             display: flex; 
             flex-direction: row; 
             align-items: flex-start;
-            border-bottom: 2px dashed rgba(255,255,255,0.4); 
-            padding-bottom: 10px;
+            border-bottom: 1px dashed rgba(255,255,255,0.4); 
+            padding-bottom: 6px;
         }
         
         /* 左側の名前/スコア表示エリア */
         .player-info {
-            width: 150px;
-            font-size: 22px;
+            width: 70px;
+            font-size: 12px;
             text-align: left;
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            padding-top: 10px;
+            gap: 2px;
+            padding-top: 2px;
+            flex-shrink: 0;
         }
 
         .player-name {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 2px;
+            white-space: nowrap;
         }
 
         .dealer-mark {
             background-color: #f44336;
             color: white;
-            font-size: 14px;
-            padding: 2px 4px;
-            border-radius: 3px;
+            font-size: 10px;
+            padding: 1px 2px;
+            border-radius: 2px;
             display: none;
         }
 
         .player-score {
-            font-size: 18px;
+            font-size: 14px;
             color: #fff;
         }
 
@@ -98,7 +120,7 @@
             display: flex;
             flex-direction: column;
             flex-grow: 1;
-            gap: 10px;
+            gap: 4px;
         }
 
         .discards { 
@@ -106,89 +128,117 @@
             flex-wrap: wrap; 
             gap: 1px; 
             width: 100%; 
-            min-height: 50px; 
+            min-height: 31px; 
             align-content: flex-start; 
             justify-content: flex-start;
         }
 
         .hand { 
             display: flex; 
-            gap: 2px; 
-            min-height: 50px; 
+            gap: 1px; 
+            min-height: 31px; 
             justify-content: flex-start;
+            align-items: center;
         }
         
-        /* 牌のスタイリング (スプライト画像対応・レトロ風調整) */
+        /* 牌のスタイリング (スマホ用に大きく、影を削除) */
         .tile { 
-            width: 32px; /* 元の幅16pxの2倍 */
-            height: 38px; /* 元の高さ19pxの2倍 */
+            width: 26px; 
+            height: 31px; 
             background-image: url('tiles.png');
             background-size: 2100% 100%;
             background-repeat: no-repeat;
             background-position-x: calc(var(--tile-index, 0) * 5%);
             background-position-y: center;
-            image-rendering: pixelated; /* 拡大してもドットがぼやけないようにする */
-            
-            /* 透過画像の形に沿って影をつける */
-            filter: drop-shadow(1px 1px 0px rgba(0,0,0,0.8)); 
+            image-rendering: pixelated;
             
             cursor: default; 
             user-select: none;
         }
         
-        /* プレイヤーの手牌のみホバーエフェクトとクリックを有効化 */
-        #player-0 .hand .tile { cursor: pointer; transition: transform 0.1s; }
-        #player-0 .hand .tile:hover { 
-            transform: translateY(-4px); 
-            filter: drop-shadow(1px 5px 0px rgba(0,0,0,0.8)); 
+        /* プレイヤー(自分)の手牌はさらに大きく */
+        #player-0 .hand {
+            min-height: 48px;
+            gap: 2px;
+        }
+        #player-0 .hand .tile {
+            width: 40px;
+            height: 48px;
+            cursor: pointer; 
+            transition: transform 0.1s;
+        }
+        
+        #player-0 .hand .tile:active { 
+            transform: translateY(-2px); 
         }
 
         /* コントロールパネル */
-        #controls { margin-top: 20px; display: flex; justify-content: center; gap: 10px; }
+        #controls { 
+            margin-top: 10px; 
+            display: flex; 
+            justify-content: center; 
+            flex-wrap: wrap;
+            gap: 5px; 
+            flex-shrink: 0;
+            min-height: 36px; /* ボタンがない時も高さを確保してガタツキを防ぐ */
+        }
         button { 
             font-family: 'DotGothic16', sans-serif;
-            padding: 10px 20px; 
-            font-size: 18px; 
+            padding: 8px 12px; 
+            font-size: 14px; 
             cursor: pointer; 
             margin: 0; 
-            border-radius: 0px; 
-            border: 2px solid white;
+            border-radius: 2px; 
+            border: 1px solid white;
             box-shadow: 2px 2px 0px black;
+            touch-action: manipulation;
         }
-        button:active { transform: translate(2px, 2px); box-shadow: none; }
+        button:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0px black; }
+        
         #btn-tsumo { background-color: #ff9800; color: white; display: none; }
         #btn-ron { background-color: #f44336; color: white; display: none; }
         #btn-next { background-color: #2196f3; color: white; display: none; }
         #btn-next-round { background-color: #9c27b0; color: white; display: none; }
         
-        /* ログウィンドウ（ドラクエのメッセージウィンドウ風） */
+        /* ログウィンドウ（残りの高さをすべて埋める） */
         #log { 
-            max-width: 800px;
-            margin: 20px auto; 
-            padding: 15px; 
+            width: calc(100% - 10px);
+            margin: 5px auto; 
+            padding: 8px; 
             background: black; 
-            border: 3px solid white;
-            border-radius: 5px;
-            height: 150px; 
-            overflow-y: scroll; 
+            border: 2px solid white;
+            border-radius: 3px;
+            
+            /* Flexboxで残りのスペースをすべて占有させる */
+            flex-grow: 1; 
+            
+            overflow-y: auto; 
             text-align: left; 
-            font-size: 18px;
+            font-size: 13px; /* 読みやすいサイズに */
             line-height: 1.5;
+            box-sizing: border-box;
         }
+
+        /* ログのハイライト用CSS */
+        .log-tsumo { color: #ffeb3b; font-weight: bold; }
+        .log-ron { color: #ff5722; font-weight: bold; }
+        .log-score { color: #8bc34a; font-weight: bold; }
 
         /* フッターエリア (リセットボタン用) */
         #footer-controls {
-            margin-top: 20px;
-            padding-bottom: 30px;
+            padding-bottom: 5px;
+            padding-top: 5px;
+            flex-shrink: 0;
         }
         #btn-reset { 
             background-color: #607d8b; 
             color: white; 
-            font-size: 14px; 
-            padding: 8px 16px;
+            font-size: 12px; 
+            padding: 6px 12px;
+            box-shadow: 1px 1px 0px black;
         }
 
-        /* 確認用モーダル (ファミコン風) */
+        /* 確認用モーダル */
         #reset-modal {
             display: none; 
             position: fixed; 
@@ -203,29 +253,30 @@
         }
         .modal-content {
             background-color: black;
-            border: 4px solid white;
-            padding: 30px;
+            border: 2px solid white;
+            padding: 15px;
             text-align: center;
-            border-radius: 5px;
-            font-size: 20px;
+            border-radius: 3px;
+            font-size: 14px;
+            width: 80%;
         }
         .modal-buttons {
             display: flex;
             justify-content: center;
-            gap: 30px;
-            margin-top: 30px;
+            gap: 15px;
+            margin-top: 15px;
         }
     </style>
 </head>
 <body>
 
     <div id="top-bar">
-        <div>第<span id="round-num">1</span>周 <span id="game-num">1</span>局目</div>
-        <div id="turn-indicator">ゲーム開始中...</div>
+        <div>第<span id="round-num">1</span>周 <span id="game-num">1</span>局</div>
+        <div id="turn-indicator">開始中...</div>
         <div class="dora-container">
-            <span>ドラ表示:</span>
+            <span>ドラ:</span>
             <div id="dora-indicator"></div>
-            <span style="margin-left: 10px;">ノコリ: <span id="deck-count">44</span></span>
+            <span style="margin-left: 2px;">残:<span id="deck-count">44</span></span>
         </div>
     </div>
 
@@ -269,7 +320,7 @@
         <!-- プレイヤー -->
         <div id="player-0" class="player-area" style="border-bottom: none;">
             <div class="player-info">
-                <div class="player-name" style="color: #ffd700;">プレイヤー<span class="dealer-mark" id="dealer-0">親</span></div>
+                <div class="player-name" style="color: #ffd700;">あなた<span class="dealer-mark" id="dealer-0">親</span></div>
                 <div class="player-score" id="score-0">40点</div>
             </div>
             <div class="play-area">
@@ -282,28 +333,41 @@
     <div id="controls">
         <button id="btn-tsumo" onclick="declareTsumo(0)">ツモ！</button>
         <button id="btn-ron" onclick="declareRon(0)">ロン！</button>
-        <button id="btn-next" onclick="nextTurn()">捨てる・見逃す</button>
+        <button id="btn-next" onclick="nextTurn()">見逃す</button>
         <button id="btn-next-round" onclick="startRound()">次の局へ</button>
     </div>
 
     <div id="log"></div>
 
     <div id="footer-controls">
-        <button id="btn-reset" onclick="openResetModal()">データの消去(リセット)</button>
+        <button id="btn-reset" onclick="openResetModal()">消去(リセット)</button>
     </div>
 
     <!-- リセット確認モーダル -->
     <div id="reset-modal">
         <div class="modal-content">
-            <p>現在のゲームデータを削除して、<br>最初からやり直しますか？</p>
+            <p>データを削除して、<br>最初からやり直しますか？</p>
             <div class="modal-buttons">
-                <button onclick="executeReset()" style="background-color: #f44336;">はい</button>
-                <button onclick="closeResetModal()" style="background-color: #9e9e9e;">いいえ</button>
+                <button onclick="executeReset()" style="background-color: #f44336; padding: 5px 10px;">はい</button>
+                <button onclick="closeResetModal()" style="background-color: #9e9e9e; padding: 5px 10px;">いいえ</button>
             </div>
         </div>
     </div>
 
     <script>
+        // Service Workerの登録 (PWA対応)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+
         // 牌の定義
         const TILE_TYPES = { SOUZU: 'souzu', HATSU: 'hatsu', CHUN: 'chun' };
         let deck = [];
@@ -323,7 +387,6 @@
 
         function log(msg) {
             const logDiv = document.getElementById('log');
-            // 最新のログが一番上に来るように修正
             logDiv.insertAdjacentHTML('afterbegin', `<div>＊ ${msg}</div>`);
             logDiv.scrollTop = 0;
         }
@@ -512,13 +575,18 @@
                     
                     // ツモ牌（手牌が6枚の時の6枚目）は少し隙間を空ける
                     if (players[i].hand.length === 6 && index === 5) {
-                        tileNode.style.marginLeft = '12px';
+                        tileNode.style.marginLeft = '8px';
                     }
                     
                     handDiv.appendChild(tileNode);
                 });
 
-                discardDiv.innerHTML = players[i].discards.map(t => getTileHTML(t)).join('');
+                // 捨て牌の描画（カンマを出さないように文字列連結に変更）
+                let discardHTML = '';
+                players[i].discards.forEach(t => {
+                   discardHTML += getTileHTML(t);
+                });
+                discardDiv.innerHTML = discardHTML;
             }
             // 描画が完了したら状態を保存
             saveGameState();
@@ -708,7 +776,7 @@
         // --- ゲームフロー管理 ---
         function startGame() {
             players = [
-                { name: "プレイヤー", hand: [], discards: [], isCPU: false, score: 40 },
+                { name: "あなた", hand: [], discards: [], isCPU: false, score: 40 },
                 { name: "CPU1", hand: [], discards: [], isCPU: true, score: 40 },
                 { name: "CPU2", hand: [], discards: [], isCPU: true, score: 40 },
                 { name: "CPU3", hand: [], discards: [], isCPU: true, score: 40 }
@@ -740,7 +808,7 @@
             // 局数の計算
             let gameNum = (currentDealer - startingDealer + 4) % 4 + 1;
             let doraName = doraTile.type === TILE_TYPES.SOUZU ? `索子${doraTile.val}` : (doraTile.type === TILE_TYPES.HATSU ? '發' : '中');
-            log(`【第${roundNum}周 ${gameNum}局目】 ドラ表示牌は [${doraName}] です。`);
+            log(`【第${roundNum}周 ${gameNum}局】 ドラ表示は [${doraName}] です。`);
 
             currentTurn = currentDealer;
             gameOver = false;
@@ -770,7 +838,7 @@
                 if (currentTurn === 0) {
                     document.getElementById('btn-tsumo').style.display = 'inline-block';
                 } else {
-                    log(`${players[currentTurn].name} がツモあがり！ ${res.points}点 [${res.yaku.join(', ')}]`);
+                    log(`<span class="log-tsumo">${players[currentTurn].name} がツモあがり！ ${res.points}点 [${res.yaku.join(', ')}]</span>`);
                     processScoreTsumo(currentTurn, res.points);
                     endRound();
                     return;
@@ -785,6 +853,16 @@
                     discardTile(currentTurn, discardIndex);
                 }, 800);
             }
+        }
+
+        // ロン時に牌を移動させる関数
+        function takeRonTile(winnerIdx, loserIdx) {
+            if (!lastDiscard) return;
+            // 振り込んだ人の捨て牌から削除
+            players[loserIdx].discards.pop();
+            // あがった人の手牌に追加 (ソートはせずに一番右に置く)
+            players[winnerIdx].hand.push(lastDiscard.tile);
+            render();
         }
 
         function discardTile(playerIndex, tileIndex) {
@@ -817,7 +895,9 @@
                             document.getElementById('btn-ron').dataset.points = res.points;
                             document.getElementById('btn-ron').dataset.yaku = res.yaku.join(', ');
                         } else {
-                            log(`${players[i].name} がロン！ ${res.points}点 [${res.yaku.join(', ')}]`);
+                            log(`<span class="log-ron">${players[i].name} がロン！ ${res.points}点 [${res.yaku.join(', ')}]</span>`);
+                            // 牌の移動
+                            takeRonTile(i, playerIndex);
                             processScoreRon(i, playerIndex, res.points);
                             endRound();
                             return;
@@ -844,7 +924,7 @@
 
         function declareTsumo(playerIndex) {
             let res = checkWin(players[playerIndex].hand, playerIndex === currentDealer, doraTile);
-            log(`あなた がツモあがり！ ${res.points}点 [${res.yaku.join(', ')}]`);
+            log(`<span class="log-tsumo">あなた がツモあがり！ ${res.points}点 [${res.yaku.join(', ')}]</span>`);
             processScoreTsumo(playerIndex, res.points);
             endRound();
         }
@@ -853,7 +933,11 @@
             let btn = document.getElementById('btn-ron');
             let pts = parseInt(btn.dataset.points);
             let yakuStr = btn.dataset.yaku;
-            log(`あなた がロンあがり！ ${pts}点 [${yakuStr}]`);
+            log(`<span class="log-ron">あなた がロンあがり！ ${pts}点 [${yakuStr}]</span>`);
+            
+            // 牌の移動
+            takeRonTile(playerIndex, lastDiscard.from);
+
             processScoreRon(playerIndex, lastDiscard.from, pts);
             endRound();
         }
@@ -868,7 +952,7 @@
 
         function processScoreTsumo(winnerIdx, points) {
             let payAmount = Math.ceil(points / 3);
-            log(`各プレイヤーは ${payAmount}点 支払います。`);
+            log(`<span class="log-score">各プレイヤーは ${payAmount}点 支払います。</span>`);
             for(let i=0; i<4; i++) {
                 if(i !== winnerIdx) {
                     payScore(i, winnerIdx, payAmount);
@@ -877,14 +961,13 @@
         }
 
         function processScoreRon(winnerIdx, loserIdx, points) {
-            log(`${players[loserIdx].name} が ${points}点 支払います。`);
+            log(`<span class="log-score">${players[loserIdx].name} が ${points}点 支払います。</span>`);
             payScore(loserIdx, winnerIdx, points);
         }
 
         function endRound() {
             gameOver = true;
-
-            // アガリや流局時に不要なボタンを非表示にする
+            
             document.getElementById('btn-tsumo').style.display = 'none';
             document.getElementById('btn-ron').style.display = 'none';
             document.getElementById('btn-next').style.display = 'none';
@@ -898,9 +981,9 @@
             }
 
             if (roundNum > 4) {
-                log("ゲーム終了！ 最終結果を発表します。");
+                log(`<span class="log-tsumo">ゲーム終了！ 最終結果を発表します。</span>`);
                 let sorted = [...players].sort((a,b) => b.score - a.score);
-                log(`1位: ${sorted[0].name} (${sorted[0].score}点)`);
+                log(`<span class="log-tsumo">1位: ${sorted[0].name} (${sorted[0].score}点)</span>`);
                 document.getElementById('turn-indicator').innerText = "ゲーム終了";
             } else {
                 document.getElementById('btn-next-round').style.display = 'inline-block';
