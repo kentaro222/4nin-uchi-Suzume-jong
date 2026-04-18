@@ -90,7 +90,7 @@
         
         /* 左側の名前/スコア表示エリア */
         .player-info {
-            width: 80px; /* スマホ向けに少し縮める */
+            width: 80px; 
             font-size: 14px;
             text-align: left;
             display: flex;
@@ -162,14 +162,12 @@
             user-select: none;
         }
         
-        /* プレイヤー(自分)の手牌はスマホ画面に収まる最大サイズに調整 */
+        /* プレイヤー(自分)の手牌も他と同じサイズにする */
         #player-0 .hand {
-            min-height: 50px;
+            min-height: 41px;
             gap: 2px;
         }
         #player-0 .hand .tile {
-            width: 42px; /* スマホ縦持ちに収まるよう微調整 */
-            height: 50px; /* スマホ縦持ちに収まるよう微調整 */
             cursor: pointer; 
             transition: transform 0.1s;
         }
