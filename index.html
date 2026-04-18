@@ -162,7 +162,7 @@
             user-select: none;
         }
         
-        /* プレイヤー(自分)の手牌も他と同じサイズにする */
+        /* プレイヤー(自分)の手牌 */
         #player-0 .hand {
             min-height: 41px;
             gap: 2px;
@@ -621,59 +621,74 @@
                             (t.type === TILE_TYPES.SOUZU && [1,9].includes(t.val)));
             let isSuperRed = tiles6.every(t => t.red || t.type === TILE_TYPES.CHUN);
 
-            if (isSuperRed) return { points: 20, yaku: ["スーパーレッド(20)"] };
-            if (isChinyao) return { points: 15, yaku: ["チンヤオ(15)"] };
-            if (isAllGreen) return { points: 10, yaku: ["オールグリーン(10)"] };
+            // 特殊役の判定（特殊役は元から5点以上あるので、親ボーナスを無条件に足せる）
+            if (isSuperRed) {
+                let pts = 20; let yaku = ["スーパーレッド(20)"];
+                if (isDealer) { pts += 2; yaku.push("親ボーナス(2)"); }
+                return { points: pts, yaku: yaku };
+            }
+            if (isChinyao) {
+                let pts = 15; let yaku = ["チンヤオ(15)"];
+                if (isDealer) { pts += 2; yaku.push("親ボーナス(2)"); }
+                return { points: pts, yaku: yaku };
+            }
+            if (isAllGreen) {
+                let pts = 10; let yaku = ["オールグリーン(10)"];
+                if (isDealer) { pts += 2; yaku.push("親ボーナス(2)"); }
+                return { points: pts, yaku: yaku };
+            }
 
             for (let vs of validSplits) {
-                let currentPoints = 0;
+                let basePoints = 0; // 基本点（5点の条件に使う点数）
                 let yakuList = [];
 
-                currentPoints += vs.p1 + vs.p2;
+                basePoints += vs.p1 + vs.p2;
                 yakuList.push(`基本点(${vs.p1 + vs.p2})`);
 
                 let redCount = tiles6.filter(t => t.red || t.type === TILE_TYPES.CHUN).length;
                 if (redCount > 0) {
-                    currentPoints += redCount;
+                    basePoints += redCount;
                     yakuList.push(`赤牌x${redCount}`);
                 }
 
                 if (doraTileObj) {
                     let doraCount = tiles6.filter(t => t.type === doraTileObj.type && t.val === doraTileObj.val).length;
                     if (doraCount > 0) {
-                        currentPoints += doraCount;
+                        basePoints += doraCount;
                         yakuList.push(`ドラx${doraCount}`);
                     }
                 }
 
                 let hasYaochu = tiles6.some(t => t.type === TILE_TYPES.HATSU || t.type === TILE_TYPES.CHUN || (t.type === TILE_TYPES.SOUZU && [1,9].includes(t.val)));
                 if (!hasYaochu) {
-                    currentPoints += 1;
+                    basePoints += 1;
                     yakuList.push("タンヤオ(1)");
                 }
 
                 let hasYaochuG1 = vs.g1.some(t => t.type === TILE_TYPES.HATSU || t.type === TILE_TYPES.CHUN || (t.type === TILE_TYPES.SOUZU && [1,9].includes(t.val)));
                 let hasYaochuG2 = vs.g2.some(t => t.type === TILE_TYPES.HATSU || t.type === TILE_TYPES.CHUN || (t.type === TILE_TYPES.SOUZU && [1,9].includes(t.val)));
                 if (hasYaochuG1 && hasYaochuG2) {
-                    currentPoints += 2;
+                    basePoints += 2;
                     yakuList.push("チャンタ(2)");
                 }
 
-                if (isDealer) {
-                    currentPoints += 2;
-                    yakuList.push("親ボーナス(2)");
-                }
+                // 基本点だけで5点以上あるか判定する
+                if (basePoints >= 5) {
+                    let finalPoints = basePoints;
+                    
+                    // 5点条件を満たしている場合のみ、親ボーナスを加算
+                    if (isDealer) {
+                        finalPoints += 2;
+                        yakuList.push("親ボーナス(2)");
+                    }
 
-                if (currentPoints > bestResult.points) {
-                    bestResult = { points: currentPoints, yaku: yakuList };
+                    if (finalPoints > bestResult.points) {
+                        bestResult = { points: finalPoints, yaku: yakuList };
+                    }
                 }
             }
 
-            if (bestResult.points < 5) {
-                return { points: 0, yaku: [] };
-            }
-
-            return bestResult;
+            return bestResult; // 5点未満の場合は初期値の {points: 0, yaku: []} が返る
         }
 
         function evaluateMeld(g) {
