@@ -5,20 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>4人打ち すずめ雀</title>
     
-    <!-- PWA用の設定 -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3b9e2b">
     <link rel="apple-touch-icon" href="icon-192x192.png">
     
-    <!-- レトロなドットフォントを読み込み -->
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
+        /* 左右の余白部分も同じ背景色にするため html に設定 */
+        html {
+            background-color: #3b9e2b;
+        }
+
         body { 
             font-family: 'DotGothic16', sans-serif; 
             background-color: #3b9e2b; /* ファミコンの麻雀マット風の緑 */
             color: white; 
-            margin: 0; 
-            padding: 5px; 
+            margin: 0 auto; /* 中央寄せ */
+            padding: 5px 10px; 
             text-align: center; 
             touch-action: manipulation; /* ダブルタップズーム防止 */
             
@@ -27,6 +30,9 @@
             flex-direction: column;
             height: 100dvh; /* スマホのブラウザバーを除いた正確な画面高さ */
             box-sizing: border-box;
+            
+            /* 横長画面への対応: 最大幅を制限 */
+            max-width: 600px;
         }
         
         /* 画面上部の情報バー */
@@ -36,7 +42,7 @@
             align-items: center;
             max-width: 100%;
             margin: 0 auto 5px auto;
-            font-size: 14px;
+            font-size: 16px; /* 文字サイズアップ */
             border-bottom: 1px solid white;
             padding-bottom: 5px;
             width: 100%;
@@ -46,7 +52,7 @@
         #turn-indicator {
             color: #ffd700;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 20px; /* 文字サイズアップ */
         }
 
         .dora-container {
@@ -56,9 +62,9 @@
         }
 
         #dora-indicator {
-            transform: scale(0.8);
+            transform: scale(0.9);
             transform-origin: center;
-            height: 28px;
+            height: 37px; /* 牌の拡大に合わせて調整 */
             margin-left: -2px;
             margin-right: -2px;
         }
@@ -67,7 +73,7 @@
         #game-board { 
             display: flex; 
             flex-direction: column; 
-            gap: 6px; 
+            gap: 8px; /* 少し余白を広げる */
             width: 100%; 
             margin: 0 auto; 
             flex-shrink: 0; /* 盤面は縮めない */
@@ -79,13 +85,13 @@
             flex-direction: row; 
             align-items: flex-start;
             border-bottom: 1px dashed rgba(255,255,255,0.4); 
-            padding-bottom: 6px;
+            padding-bottom: 8px;
         }
         
         /* 左側の名前/スコア表示エリア */
         .player-info {
-            width: 70px;
-            font-size: 12px;
+            width: 85px; /* サイズアップに伴い幅を拡張 */
+            font-size: 14px; /* 文字サイズアップ */
             text-align: left;
             display: flex;
             flex-direction: column;
@@ -104,14 +110,14 @@
         .dealer-mark {
             background-color: #f44336;
             color: white;
-            font-size: 10px;
-            padding: 1px 2px;
+            font-size: 12px; /* 文字サイズアップ */
+            padding: 2px 4px; /* パディングを増やす */
             border-radius: 2px;
             display: none;
         }
 
         .player-score {
-            font-size: 14px;
+            font-size: 18px; /* 文字サイズアップ */
             color: #fff;
         }
 
@@ -128,7 +134,7 @@
             flex-wrap: wrap; 
             gap: 1px; 
             width: 100%; 
-            min-height: 31px; 
+            min-height: 41px; /* 牌の拡大に合わせて調整 */
             align-content: flex-start; 
             justify-content: flex-start;
         }
@@ -136,15 +142,15 @@
         .hand { 
             display: flex; 
             gap: 1px; 
-            min-height: 31px; 
+            min-height: 41px; /* 牌の拡大に合わせて調整 */
             justify-content: flex-start;
             align-items: center;
         }
         
-        /* 牌のスタイリング (スマホ用に大きく、影を削除) */
+        /* 牌のスタイリング (全体的にサイズアップ) */
         .tile { 
-            width: 26px; 
-            height: 31px; 
+            width: 34px; 
+            height: 41px; 
             background-image: url('tiles.png');
             background-size: 2100% 100%;
             background-repeat: no-repeat;
@@ -158,12 +164,12 @@
         
         /* プレイヤー(自分)の手牌はさらに大きく */
         #player-0 .hand {
-            min-height: 48px;
+            min-height: 60px; /* 高さ調整 */
             gap: 2px;
         }
         #player-0 .hand .tile {
-            width: 40px;
-            height: 48px;
+            width: 50px; /* サイズアップ */
+            height: 60px; /* サイズアップ */
             cursor: pointer; 
             transition: transform 0.1s;
         }
@@ -178,14 +184,14 @@
             display: flex; 
             justify-content: center; 
             flex-wrap: wrap;
-            gap: 5px; 
+            gap: 10px; /* 余白を広げる */
             flex-shrink: 0;
-            min-height: 36px; /* ボタンがない時も高さを確保してガタツキを防ぐ */
+            min-height: 50px; /* 高さを確保 */
         }
         button { 
             font-family: 'DotGothic16', sans-serif;
-            padding: 8px 12px; 
-            font-size: 14px; 
+            padding: 10px 16px; /* ボタンを大きく */
+            font-size: 18px; /* 文字サイズアップ */
             cursor: pointer; 
             margin: 0; 
             border-radius: 2px; 
@@ -200,11 +206,11 @@
         #btn-next { background-color: #2196f3; color: white; display: none; }
         #btn-next-round { background-color: #9c27b0; color: white; display: none; }
         
-        /* ログウィンドウ（残りの高さをすべて埋める） */
+        /* ログウィンドウ */
         #log { 
             width: calc(100% - 10px);
-            margin: 5px auto; 
-            padding: 8px; 
+            margin: 10px auto; 
+            padding: 10px; 
             background: black; 
             border: 2px solid white;
             border-radius: 3px;
@@ -214,7 +220,7 @@
             
             overflow-y: auto; 
             text-align: left; 
-            font-size: 13px; /* 読みやすいサイズに */
+            font-size: 16px; /* 文字サイズアップ */
             line-height: 1.5;
             box-sizing: border-box;
         }
@@ -224,7 +230,7 @@
         .log-ron { color: #ff5722; font-weight: bold; }
         .log-score { color: #8bc34a; font-weight: bold; }
 
-        /* フッターエリア (リセットボタン用) */
+        /* フッターエリア */
         #footer-controls {
             padding-bottom: 5px;
             padding-top: 5px;
@@ -233,8 +239,8 @@
         #btn-reset { 
             background-color: #607d8b; 
             color: white; 
-            font-size: 12px; 
-            padding: 6px 12px;
+            font-size: 14px; /* 文字サイズアップ */
+            padding: 8px 16px;
             box-shadow: 1px 1px 0px black;
         }
 
@@ -254,17 +260,18 @@
         .modal-content {
             background-color: black;
             border: 2px solid white;
-            padding: 15px;
+            padding: 20px;
             text-align: center;
             border-radius: 3px;
-            font-size: 14px;
+            font-size: 18px; /* 文字サイズアップ */
             width: 80%;
+            max-width: 400px; /* 横に広がりすぎないように制限 */
         }
         .modal-buttons {
             display: flex;
             justify-content: center;
-            gap: 15px;
-            margin-top: 15px;
+            gap: 20px;
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -281,7 +288,6 @@
     </div>
 
     <div id="game-board">
-        <!-- CPU 1 -->
         <div id="player-1" class="player-area">
             <div class="player-info">
                 <div class="player-name">CPU1<span class="dealer-mark" id="dealer-1">親</span></div>
@@ -293,7 +299,6 @@
             </div>
         </div>
 
-        <!-- CPU 2 -->
         <div id="player-2" class="player-area">
             <div class="player-info">
                 <div class="player-name">CPU2<span class="dealer-mark" id="dealer-2">親</span></div>
@@ -305,7 +310,6 @@
             </div>
         </div>
 
-        <!-- CPU 3 -->
         <div id="player-3" class="player-area">
             <div class="player-info">
                 <div class="player-name">CPU3<span class="dealer-mark" id="dealer-3">親</span></div>
@@ -317,7 +321,6 @@
             </div>
         </div>
 
-        <!-- プレイヤー -->
         <div id="player-0" class="player-area" style="border-bottom: none;">
             <div class="player-info">
                 <div class="player-name" style="color: #ffd700;">あなた<span class="dealer-mark" id="dealer-0">親</span></div>
@@ -343,13 +346,12 @@
         <button id="btn-reset" onclick="openResetModal()">消去(リセット)</button>
     </div>
 
-    <!-- リセット確認モーダル -->
     <div id="reset-modal">
         <div class="modal-content">
             <p>データを削除して、<br>最初からやり直しますか？</p>
             <div class="modal-buttons">
-                <button onclick="executeReset()" style="background-color: #f44336; padding: 5px 10px;">はい</button>
-                <button onclick="closeResetModal()" style="background-color: #9e9e9e; padding: 5px 10px;">いいえ</button>
+                <button onclick="executeReset()" style="background-color: #f44336; padding: 10px 20px;">はい</button>
+                <button onclick="closeResetModal()" style="background-color: #9e9e9e; padding: 10px 20px;">いいえ</button>
             </div>
         </div>
     </div>
