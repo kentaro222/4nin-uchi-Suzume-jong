@@ -1,5 +1,5 @@
  
-const CACHE_NAME = 'suzume-jan-v2';
+const CACHE_NAME = 'suzume-jan-v3';
 
 // キャッシュするファイルのリスト
 const urlsToCache = [
