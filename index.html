@@ -204,7 +204,7 @@
         #btn-next { background-color: #2196f3; color: white; display: none; }
         #btn-next-round { background-color: #9c27b0; color: white; display: none; }
         
-        /* ログウィンドウ */
+                /* ログウィンドウ：最低4行分（約120px）を確保 */
         #log { 
             width: calc(100% - 10px);
             margin: 10px auto; 
@@ -214,6 +214,7 @@
             border-radius: 3px;
             
             flex-grow: 1; 
+            min-height: 120px; /* ここを追加：4〜5行分を常に表示 */
             
             overflow-y: auto; 
             text-align: left; 
@@ -221,6 +222,37 @@
             line-height: 1.5;
             box-sizing: border-box;
         }
+
+        /* フッターエリア：ボタンとアイコンを横並びに */
+        #footer-controls {
+            padding-bottom: 15px; /* 下に少し余裕を持たせる */
+            padding-top: 5px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px; /* ボタンとアイコンの間隔 */
+        }
+
+        /* 案内アイコン（まるにはてな） */
+        #btn-guide {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border: 2px solid #ffd700;
+            border-radius: 50%;
+            color: #ffd700;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+        #btn-guide:active {
+            opacity: 0.5;
+        }
+
 
         .log-tsumo { color: #ffeb3b; font-weight: bold; }
         .log-ron { color: #ff5722; font-weight: bold; }
@@ -238,6 +270,22 @@
             font-size: 14px;
             padding: 8px 16px;
             box-shadow: 1px 1px 0px black;
+        }
+
+        #link-guide {
+            display: inline-block;
+            color: #ffd700; /* ドラと同じ金色 */
+            text-decoration: none;
+            font-size: 16px;
+            margin-top: 12px;
+            padding: 5px 10px;
+            border-bottom: 1px solid #ffd700;
+            transition: opacity 0.2s;
+        }
+        #link-guide:active {
+            opacity: 0.6;
+            color: white;
+            border-bottom-color: white;
         }
 
         /* 確認用モーダル */
@@ -336,10 +384,14 @@
         <button id="btn-next-round" onclick="startRound()">次の局へ</button>
     </div>
 
-    <div id="log"></div>
+        <div id="log"></div>
 
-    <div id="footer-controls">
+        <div id="footer-controls">
         <button id="btn-reset" onclick="openResetModal()">消去(リセット)</button>
+        
+        <a href="guide.html" target="_blank" id="btn-guide" title="遊び方ガイド">?</a>
+    </div>
+
     </div>
 
     <div id="reset-modal">
