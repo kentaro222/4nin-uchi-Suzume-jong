@@ -1,10 +1,12 @@
  
-const CACHE_NAME = 'suzume-jan-v5';
+const CACHE_NAME = 'suzume-jan-v6';
 
 // キャッシュするファイルのリスト
 const urlsToCache = [
   './',
   './index.html',
+  './guide.html',
+  './DotGothic16-Regular.ttf',
   './tiles.png',
   './manifest.json',
   './sw.js'
