@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>すずめ雀 プレイングガイド (専用版)</title>
-    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+    <title>すずめ雀 プレイングガイド</title>
+
     <style>
-        body { 
-            font-family: 'DotGothic16', sans-serif; 
-            background-color: #3b9e2b; 
+    @font-face {
+        font-family: 'DotGothic16';
+        src: url('DotGothic16-Regular.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+    }
+    html {
+           background-color: #3b9e2b; 
             color: white; 
             margin: 0 auto; 
             padding: 15px; 
@@ -93,9 +98,23 @@
         button.close-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0px black; }
     </style>
 </head>
+
+<script>
+function smartReturn() {
+    // 1. ブラウザの履歴がある場合は、前の画面（ゲーム画面）に戻る
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        // 2. 直接URLを叩いた場合など履歴がない場合は、index.html へ遷移する
+        // window.close() はアプリを終了させてしまう可能性があるため避ける
+        window.location.href = 'index.html';
+    }
+}
+</script>
+
 <body>
 
-    <button class="close-btn" onclick="window.close()">タブを閉じてゲームに戻る</button>
+    <button class="close-btn" onclick="smartReturn();">ゲームに戻る</button>
 
     <h1>すずめ雀 プレイングガイド</h1>
 
@@ -103,7 +122,7 @@
     <p>手牌5枚＋ツモ牌1枚の計6枚で、3枚セットを2つ完成させます。</p>
     
     <div class="important-note">
-        【最重要ルール】合計5点以上であがれます。<br>
+        【重要ルール】合計5点以上であがれます。<br>
         ※親ボーナス（+2点）は、この「あがりに必要な5点」の内訳に含めることはできません。役とボーナス（赤牌・ドラ等）だけで5点を確保する必要があります。
     </div>
 
@@ -252,7 +271,7 @@
         <li><strong>フリテン:</strong> 自分がすでに捨てた牌と同じ種類の牌では「ロン！」ができません。</li>
     </ul>
 
-    <button class="close-btn" onclick="window.close()" style="margin-top: 40px; margin-bottom: 40px;">タブを閉じてゲームに戻る</button>
+    <button class="close-btn" onclick="smartReturn();" style="margin-top: 40px; margin-bottom: 40px;">ゲームに戻る</button>
 
 </body>
 </html>
