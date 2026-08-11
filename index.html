@@ -523,24 +523,31 @@
 
             let activePlayer = players[currentTurn];
             
-            // ロン待機状態の復元 (手牌が5枚で lastDiscard が存在する状態)
+            // 捨て牌直後に保存されていた場合、頭ハネ込みでロン判定を復元する
             if (lastDiscard && activePlayer.hand.length === 5) {
-                let canRon = false;
-                let p0Res = checkWin([...players[0].hand, lastDiscard.tile], 0 === currentDealer, doraTile);
-                if (p0Res.points >= 5 && !isFuriten(0, lastDiscard.tile)) {
-                     canRon = true;
-                     document.getElementById('btn-ron').style.display = 'inline-block';
-                     document.getElementById('btn-ron').dataset.points = p0Res.points;
-                     document.getElementById('btn-ron').dataset.yaku = p0Res.yaku.join(', ');
-                     document.getElementById('btn-next').style.display = 'inline-block';
-                }
-                
-                if (canRon) {
-                    return; // プレイヤーの入力待ち
-                } else {
-                    startTurn(); // 次のプレイヤーへ
+                let ronCandidate = getRonCandidate(lastDiscard.from, lastDiscard.tile);
+
+                if (ronCandidate) {
+                    let i = ronCandidate.playerIndex;
+                    let res = ronCandidate.result;
+
+                    if (i === 0) {
+                        document.getElementById('btn-ron').style.display = 'inline-block';
+                        document.getElementById('btn-ron').dataset.points = res.points;
+                        document.getElementById('btn-ron').dataset.yaku = res.yaku.join(', ');
+                        document.getElementById('btn-next').style.display = 'inline-block';
+                        return; // プレイヤーの入力待ち
+                    }
+
+                    log(`<span class="log-ron">${players[i].name} がロン！ ${res.points}点 [${res.yaku.join(', ')}]</span>`);
+                    takeRonTile(i, lastDiscard.from);
+                    processScoreRon(i, lastDiscard.from, res.points);
+                    endRound();
                     return;
                 }
+
+                nextTurn(); // ロンがなければ次のプレイヤーへ
+                return;
             }
 
             // ツモ直後の復元 (手牌が6枚の状態)
@@ -772,43 +779,75 @@
         function getCPUDiscardIndex(playerIndex) {
             let hand6 = players[playerIndex].hand;
             let isDealer = (playerIndex === currentDealer);
-            
+
+            // 現在見えている牌から、各牌の残り枚数を数える
+            function getRemainingTileCount(type, val, red) {
+                let total = 0;
+                if (type === TILE_TYPES.SOUZU) {
+                    total = red ? 1 : 3;
+                } else {
+                    total = 4;
+                }
+
+                let seen = 0;
+                const matches = (t) => {
+                    if (t.type !== type || t.val !== val) return false;
+                    if (type === TILE_TYPES.SOUZU) return t.red === red;
+                    return true;
+                };
+
+                // 自分の手牌は見えている
+                seen += hand6.filter(matches).length;
+
+                // 全員の捨て牌は公開情報
+                for (let p of players) {
+                    seen += p.discards.filter(matches).length;
+                }
+
+                // ドラ表示牌も山から抜かれており、公開情報
+                if (doraTile && matches(doraTile)) seen++;
+
+                return Math.max(0, total - seen);
+            }
+
             let tenpaiScores = [];
 
-            // 各牌を捨てた場合の「有効牌（引けばあがれる牌）」の数を数える
+            // 各牌を捨てた場合の「実際に山に残っている有効牌枚数」を数える
             for (let i = 0; i < hand6.length; i++) {
                 let testHand5 = [...hand6];
                 testHand5.splice(i, 1);
-                
+
                 let effectiveTilesCount = 0;
                 let pointsSum = 0;
 
-                // 考えうる全ての牌(11種+赤で10+10+1+1=22通り)をテスト
                 for (let type of [TILE_TYPES.SOUZU, TILE_TYPES.HATSU, TILE_TYPES.CHUN]) {
                     let vals = type === TILE_TYPES.SOUZU ? [1,2,3,4,5,6,7,8,9] : [0];
                     for (let val of vals) {
                         for (let isRed of [true, false]) {
                             if (type !== TILE_TYPES.SOUZU && isRed) continue;
 
+                            let remaining = getRemainingTileCount(type, val, isRed);
+                            if (remaining <= 0) continue;
+
                             let testHand6 = [...testHand5, {type: type, val: val, red: isRed}];
                             let res = checkWin(testHand6, isDealer, doraTile);
                             if (res.points >= 5) {
-                                effectiveTilesCount++;
-                                pointsSum += res.points;
+                                effectiveTilesCount += remaining;
+                                pointsSum += res.points * remaining;
                             }
                         }
                     }
                 }
+
                 tenpaiScores.push({ index: i, count: effectiveTilesCount, sum: pointsSum });
             }
 
-            // 有効牌が多い順（同じなら点数期待値が高い順）にソート
+            // 有効牌の残り枚数が多い順。同数なら期待得点が高い順
             tenpaiScores.sort((a, b) => {
                 if (b.count !== a.count) return b.count - a.count;
                 return b.sum - a.sum;
             });
 
-            // もし1手でアガれる有効牌が存在するなら、それに向かう牌を捨てる
             if (tenpaiScores[0].count > 0) {
                 return tenpaiScores[0].index;
             }
@@ -818,19 +857,19 @@
             for (let i = 0; i < hand6.length; i++) {
                 let tile = hand6[i];
                 let score = 0;
-                
+
                 // 対子・暗刻の元
                 score += hand6.filter(t => t !== tile && t.type === tile.type && t.val === tile.val).length * 2;
-                
+
                 // 順子の元（索子のみ）
                 if (tile.type === TILE_TYPES.SOUZU) {
-                    score += hand6.filter(t => t !== tile && t.type === TILE_TYPES.SOUZU && Math.abs(t.val - tile.val) === 1).length * 1.5; // 両面・辺張
-                    score += hand6.filter(t => t !== tile && t.type === TILE_TYPES.SOUZU && Math.abs(t.val - tile.val) === 2).length * 1.0; // 嵌張
+                    score += hand6.filter(t => t !== tile && t.type === TILE_TYPES.SOUZU && Math.abs(t.val - tile.val) === 1).length * 1.5;
+                    score += hand6.filter(t => t !== tile && t.type === TILE_TYPES.SOUZU && Math.abs(t.val - tile.val) === 2).length * 1.0;
                 }
-                
-                // ドラ・赤ドラの価値
+
+                // ドラ・赤牌の価値
                 if (tile.red) score += 2;
-                if (tile.type === TILE_TYPES.CHUN) score += 2; 
+                if (tile.type === TILE_TYPES.CHUN) score += 2;
                 if (doraTile && tile.type === doraTile.type && tile.val === doraTile.val) score += 1.5;
 
                 // 中張牌の価値
@@ -839,7 +878,6 @@
                 kuttsukiScores.push({ index: i, score: score });
             }
 
-            // スコアが一番「低い」牌を捨てる
             kuttsukiScores.sort((a, b) => a.score - b.score);
             return kuttsukiScores[0].index;
         }
@@ -936,6 +974,20 @@
             render();
         }
 
+        // 放銃者の次の席から手番順に確認し、最も近いロン可能者だけを返す（頭ハネ）
+        function getRonCandidate(discarderIndex, discardedTile) {
+            for (let offset = 1; offset < 4; offset++) {
+                let i = (discarderIndex + offset) % 4;
+                let testHand = [...players[i].hand, discardedTile];
+                let res = checkWin(testHand, i === currentDealer, doraTile);
+
+                if (res.points >= 5 && !isFuriten(i, discardedTile)) {
+                    return { playerIndex: i, result: res };
+                }
+            }
+            return null;
+        }
+
         function discardTile(playerIndex, tileIndex) {
             if (playerIndex !== currentTurn || gameOver) return;
 
@@ -952,28 +1004,25 @@
 
             render();
 
+            // 頭ハネ：放銃者から手番順で最も近いロン可能者だけを採用
+            let ronCandidate = getRonCandidate(playerIndex, discarded);
+
             let canRon = false;
-            for (let i = 0; i < 4; i++) {
-                if (i === playerIndex) continue;
-                let testHand = [...players[i].hand, discarded];
-                let res = checkWin(testHand, i === currentDealer, doraTile);
-                
-                if (res.points >= 5) {
-                    if (!isFuriten(i, discarded)) {
-                        if (i === 0) {
-                            canRon = true;
-                            document.getElementById('btn-ron').style.display = 'inline-block';
-                            document.getElementById('btn-ron').dataset.points = res.points;
-                            document.getElementById('btn-ron').dataset.yaku = res.yaku.join(', ');
-                        } else {
-                            log(`<span class="log-ron">${players[i].name} がロン！ ${res.points}点 [${res.yaku.join(', ')}]</span>`);
-                            // 牌の移動
-                            takeRonTile(i, playerIndex);
-                            processScoreRon(i, playerIndex, res.points);
-                            endRound();
-                            return;
-                        }
-                    }
+            if (ronCandidate) {
+                let i = ronCandidate.playerIndex;
+                let res = ronCandidate.result;
+
+                if (i === 0) {
+                    canRon = true;
+                    document.getElementById('btn-ron').style.display = 'inline-block';
+                    document.getElementById('btn-ron').dataset.points = res.points;
+                    document.getElementById('btn-ron').dataset.yaku = res.yaku.join(', ');
+                } else {
+                    log(`<span class="log-ron">${players[i].name} がロン！ ${res.points}点 [${res.yaku.join(', ')}]</span>`);
+                    takeRonTile(i, playerIndex);
+                    processScoreRon(i, playerIndex, res.points);
+                    endRound();
+                    return;
                 }
             }
 
